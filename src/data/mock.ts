@@ -1,0 +1,210 @@
+import type { Recipe, DailyRecommendation, ShoppingItem, DietRecord } from '@/types'
+
+export const mockRecipes: Recipe[] = [
+  {
+    id: '1',
+    name: '香椿炒蛋',
+    cuisine: '家常菜',
+    flavor: '鲜香',
+    difficulty: 'easy',
+    time: 15,
+    calories: 280,
+    bestSeason: ['4月上旬', '4月中旬', '4月下旬'],
+    ingredients: [
+      { name: '香椿', amount: '100g' },
+      { name: '鸡蛋', amount: '3个' },
+      { name: '盐', amount: '适量' },
+      { name: '食用油', amount: '适量' },
+    ],
+    steps: [
+      { order: 1, description: '香椿洗净，焯水30秒捞出过凉水' },
+      { order: 2, description: '挤干水分，切成细末' },
+      { order: 3, description: '鸡蛋打散，加入香椿末和盐搅匀' },
+      { order: 4, description: '热锅凉油，倒入蛋液炒至凝固即可' },
+    ],
+    tips: '香椿含有亚硝酸盐，焯水是关键步骤，不可省略',
+  },
+  {
+    id: '2',
+    name: '麻婆豆腐',
+    cuisine: '川菜',
+    flavor: '麻辣',
+    difficulty: 'medium',
+    time: 25,
+    calories: 320,
+    bestSeason: ['全年'],
+    ingredients: [
+      { name: '嫩豆腐', amount: '400g' },
+      { name: '猪肉末', amount: '100g' },
+      { name: '豆瓣酱', amount: '1勺' },
+      { name: '花椒粉', amount: '适量' },
+      { name: '蒜末', amount: '2瓣' },
+    ],
+    steps: [
+      { order: 1, description: '豆腐切块，淡盐水焯烫去豆腥' },
+      { order: 2, description: '热锅炒香肉末，加入豆瓣酱炒出红油' },
+      { order: 3, description: '加入蒜末和高汤，放入豆腐中小火炖煮5分钟' },
+      { order: 4, description: '勾芡收汁，撒上花椒粉和葱花' },
+    ],
+    tips: '选用嫩豆腐口感更佳，勾芡分两次更均匀',
+  },
+  {
+    id: '3',
+    name: '清蒸鲈鱼',
+    cuisine: '粤菜',
+    flavor: '清淡',
+    difficulty: 'medium',
+    time: 20,
+    calories: 180,
+    bestSeason: ['5月下旬', '6月上旬', '6月中旬'],
+    ingredients: [
+      { name: '鲈鱼', amount: '1条(约500g)' },
+      { name: '葱丝', amount: '适量' },
+      { name: '姜丝', amount: '适量' },
+      { name: '蒸鱼豉油', amount: '2勺' },
+      { name: '热油', amount: '2勺' },
+    ],
+    steps: [
+      { order: 1, description: '鲈鱼处理干净，两面划刀' },
+      { order: 2, description: '盘底铺葱姜，鱼身放姜片，水开上锅蒸8分钟' },
+      { order: 3, description: '倒掉蒸出的汤汁，铺上新鲜葱姜丝' },
+      { order: 4, description: '淋上蒸鱼豉油，浇上热油激发香味' },
+    ],
+    tips: '蒸鱼时间根据鱼大小调整，蒸好后倒掉汤汁是去腥关键',
+  },
+  {
+    id: '4',
+    name: '樱桃小丸子',
+    cuisine: '甜品',
+    flavor: '甜香',
+    difficulty: 'easy',
+    time: 10,
+    calories: 120,
+    bestSeason: ['5月下旬', '6月上旬'],
+    ingredients: [
+      { name: '樱桃', amount: '200g' },
+      { name: '糯米粉', amount: '100g' },
+      { name: '糖粉', amount: '20g' },
+      { name: '椰蓉', amount: '适量' },
+    ],
+    steps: [
+      { order: 1, description: '糯米粉加水揉成光滑面团' },
+      { order: 2, description: '分成小剂子搓圆，中间压入去核樱桃' },
+      { order: 3, description: '水开下锅煮至浮起' },
+      { order: 4, description: '捞出滚上椰蓉即可' },
+    ],
+    tips: '樱桃要选甜度高、果肉紧实的',
+  },
+  {
+    id: '5',
+    name: '东坡肉',
+    cuisine: '浙菜',
+    flavor: '甜咸',
+    difficulty: 'hard',
+    time: 120,
+    calories: 450,
+    bestSeason: ['全年'],
+    ingredients: [
+      { name: '五花肉', amount: '800g' },
+      { name: '冰糖', amount: '50g' },
+      { name: '生抽', amount: '3勺' },
+      { name: '老抽', amount: '1勺' },
+      { name: '花雕酒', amount: '100ml' },
+    ],
+    steps: [
+      { order: 1, description: '五花肉整块焯水，切成4cm方块' },
+      { order: 2, description: '砂锅底部铺葱姜，肉皮朝下码放' },
+      { order: 3, description: '加入调料和没过肉的热水，大火烧开转小火炖90分钟' },
+      { order: 4, description: '翻面继续炖30分钟，最后大火收汁' },
+    ],
+    tips: '选用层次分明的五花肉，小火慢炖是入口即化的关键',
+  },
+  {
+    id: '6',
+    name: '凉拌黄瓜',
+    cuisine: '家常菜',
+    flavor: '清爽',
+    difficulty: 'easy',
+    time: 5,
+    calories: 60,
+    bestSeason: ['5月下旬', '6月', '7月', '8月'],
+    ingredients: [
+      { name: '黄瓜', amount: '2根' },
+      { name: '蒜末', amount: '3瓣' },
+      { name: '醋', amount: '2勺' },
+      { name: '生抽', amount: '1勺' },
+      { name: '香油', amount: '1勺' },
+    ],
+    steps: [
+      { order: 1, description: '黄瓜拍碎切段' },
+      { order: 2, description: '加盐腌制10分钟，倒掉水分' },
+      { order: 3, description: '加入蒜末、醋、生抽、香油拌匀' },
+    ],
+    tips: '拍黄瓜比切黄瓜更入味，腌制后倒掉水分更脆爽',
+  },
+]
+
+export const mockDailyRecommendation: DailyRecommendation = {
+  breakfast: mockRecipes[3],
+  lunch: mockRecipes[2],
+  dinner: mockRecipes[0],
+  snack: mockRecipes[5],
+  totalCalories: 840,
+  macros: { carbs: 45, protein: 25, fat: 30 },
+  seasonTag: '5月下旬·初夏尝鲜',
+  cuisineTag: '粤菜·清淡滋补',
+}
+
+export const mockShoppingItems: ShoppingItem[] = [
+  { id: '1', name: '香椿', category: '蔬菜', checked: false, sourceRecipe: '香椿炒蛋' },
+  { id: '2', name: '鸡蛋', category: '蛋奶', checked: false, sourceRecipe: '香椿炒蛋' },
+  { id: '3', name: '鲈鱼', category: '水产', checked: false, sourceRecipe: '清蒸鲈鱼' },
+  { id: '4', name: '樱桃', category: '水果', checked: true, sourceRecipe: '樱桃小丸子' },
+  { id: '5', name: '糯米粉', category: '粮油', checked: false, sourceRecipe: '樱桃小丸子' },
+]
+
+export const mockDietRecords: DietRecord[] = [
+  {
+    id: '1',
+    date: '2026-05-25',
+    recipe: mockRecipes[1],
+    mealType: 'lunch',
+    fullness: 'comfortable',
+    mood: '满足',
+  },
+  {
+    id: '2',
+    date: '2026-05-25',
+    recipe: mockRecipes[4],
+    mealType: 'dinner',
+    fullness: 'full',
+    mood: '幸福',
+  },
+  {
+    id: '3',
+    date: '2026-05-26',
+    recipe: mockRecipes[2],
+    mealType: 'lunch',
+    fullness: 'comfortable',
+    mood: '清爽',
+  },
+]
+
+export const cuisineOptions = ['川菜', '鲁菜', '粤菜', '苏菜', '浙菜', '闽菜', '湘菜', '徽菜', '家常菜', '异国料理']
+
+export const flavorOptions = ['麻辣', '清淡', '鲜香', '甜咸', '酸辣', '咸鲜', '甜香', '清爽']
+
+export const monthXunList = [
+  '1月上旬', '1月中旬', '1月下旬',
+  '2月上旬', '2月中旬', '2月下旬',
+  '3月上旬', '3月中旬', '3月下旬',
+  '4月上旬', '4月中旬', '4月下旬',
+  '5月上旬', '5月中旬', '5月下旬',
+  '6月上旬', '6月中旬', '6月下旬',
+  '7月上旬', '7月中旬', '7月下旬',
+  '8月上旬', '8月中旬', '8月下旬',
+  '9月上旬', '9月中旬', '9月下旬',
+  '10月上旬', '10月中旬', '10月下旬',
+  '11月上旬', '11月中旬', '11月下旬',
+  '12月上旬', '12月中旬', '12月下旬',
+]
