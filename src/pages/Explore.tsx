@@ -1,10 +1,13 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, ChefHat, SlidersHorizontal, X } from 'lucide-react'
+import { Search, Clock, ChefHat, SlidersHorizontal, X, Plus, AlertTriangle, Pencil, BookMarked, Sunrise, Sun, Sunset, Moon, Smile } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { mockRecipes, cuisineOptions } from '@/data/mock'
+import { Button } from '@/components/ui/button'
+import { cn, getCurrentXun } from '@/lib/utils'
+import { getRecipes, addDietRecord, getDeleteImpact, deleteRecipeWithCascade } from '@/lib/db'
+import { useToast } from '@/components/ToastProvider'
+import { cuisineOptions } from '@/data/mock'
 import type { Recipe } from '@/types'
 
 const staggerContainer = {
@@ -47,7 +50,157 @@ const xunGroups = [
   { label: '冬', months: ['12月', '1月', '2月'], color: 'text-sky-dark', bg: 'bg-sky/10' },
 ]
 
-function RecipeCard({ recipe, index }: { recipe: Recipe; index: number }) {
+function isOutOfSeason(bestSeason: string[]): boolean {
+  if (bestSeason.includes('全年')) return false
+  const current = getCurrentXun()
+  return !bestSeason.includes(current)
+}
+
+const mealConfig = {
+  breakfast: { icon: Sunrise, label: '早餐', bg: 'bg-honey/15', iconColor: 'text-honey-dark' },
+  lunch: { icon: Sun, label: '午餐', bg: 'bg-blossom/12', iconColor: 'text-blossom-dark' },
+  dinner: { icon: Sunset, label: '晚餐', bg: 'bg-sage/12', iconColor: 'text-sage-dark' },
+  snack: { icon: Moon, label: '加餐', bg: 'bg-sky/10', iconColor: 'text-sky-dark' },
+} as const
+
+const fullnessOptions = [
+  { value: 'hungry', label: '有点饿', emoji: '😋' },
+  { value: 'comfortable', label: '刚刚好', emoji: '😊' },
+  { value: 'full', label: '好满足', emoji: '😌' },
+] as const
+
+function QuickRecordModal({
+  recipe,
+  onClose,
+  onSaved,
+}: {
+  recipe: Recipe | null
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch')
+  const [fullness, setFullness] = useState<'hungry' | 'comfortable' | 'full'>('comfortable')
+  const [mood, setMood] = useState('满足')
+  const [saved, setSaved] = useState(false)
+
+  if (!recipe) return null
+
+  const handleSave = async () => {
+    const today = new Date().toISOString().split('T')[0]
+    await addDietRecord({
+      date: today,
+      recipe,
+      mealType,
+      fullness,
+      mood,
+    })
+    setSaved(true)
+    setTimeout(() => { onSaved(); onClose() }, 1200)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
+        className="bg-paper rounded-3xl p-5 max-w-sm w-full card-shadow"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {saved ? (
+          <div className="text-center py-6">
+            <div className="w-14 h-14 bg-sage/15 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Smile size={28} className="text-sage-dark" />
+            </div>
+            <p className="font-display text-lg text-charcoal">已记录</p>
+          </div>
+        ) : (
+          <>
+            <h3 className="font-display text-lg text-charcoal mb-3">快速记录</h3>
+            <p className="text-sm text-charcoal font-medium mb-4">{recipe.name}</p>
+
+            <div className="mb-4">
+              <label className="text-[10px] font-bold text-stone uppercase tracking-wider mb-1.5 block">用餐类型</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(Object.keys(mealConfig) as Array<keyof typeof mealConfig>).map((type) => {
+                  const Icon = mealConfig[type].icon
+                  const isSelected = mealType === type
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setMealType(type)}
+                      className={cn(
+                        'flex flex-col items-center gap-1 py-2 rounded-xl transition-all',
+                        isSelected ? 'bg-charcoal text-paper' : 'bg-cream-dark/30 text-stone'
+                      )}
+                    >
+                      <Icon size={14} />
+                      <span className="text-[11px] font-medium">{mealConfig[type].label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-[10px] font-bold text-stone uppercase tracking-wider mb-1.5 block">饱腹感</label>
+              <div className="flex gap-2">
+                {fullnessOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setFullness(opt.value as 'hungry' | 'comfortable' | 'full')}
+                    className={cn(
+                      'flex-1 py-2 rounded-xl text-sm transition-all',
+                      fullness === opt.value ? 'bg-charcoal text-paper' : 'bg-cream-dark/30 text-stone'
+                    )}
+                  >
+                    <span className="mr-1">{opt.emoji}</span>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="text-[10px] font-bold text-stone uppercase tracking-wider mb-1.5 block">心情</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {['满足', '幸福', '清爽', '惬意', '愉悦', '温暖'].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMood(m)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-xl text-xs font-medium transition-all',
+                      mood === m ? 'bg-sage/15 text-sage-dark' : 'bg-cream-dark/30 text-stone'
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1 h-11 rounded-2xl" onClick={onClose}>取消</Button>
+              <Button className="flex-1 h-11 rounded-2xl bg-sage text-charcoal" onClick={handleSave}>
+                <BookMarked size={15} className="mr-1.5" />
+                确认记录
+              </Button>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function RecipeCard({ recipe, index, onQuickRecord, onDelete }: { recipe: Recipe; index: number; onQuickRecord: (recipe: Recipe) => void; onDelete: (recipe: Recipe) => void }) {
   const navigate = useNavigate()
   const diff = difficultyConfig[recipe.difficulty]
   const accent = cuisineAccent[recipe.cuisine] || cuisineAccent['家常菜']
@@ -55,37 +208,81 @@ function RecipeCard({ recipe, index }: { recipe: Recipe; index: number }) {
   const gradientPair = index % 2 === 0
     ? 'from-sage/15 via-blossom/5 to-sky/10'
     : 'from-honey/15 via-sage/5 to-blossom/10'
+  const outOfSeason = isOutOfSeason(recipe.bestSeason)
 
   return (
     <motion.div variants={fadeInUp}>
       <Card
         className={cn(
-          'overflow-hidden cursor-pointer transition-all duration-300 hover:card-shadow-hover press-scale border-0',
+          'overflow-hidden cursor-pointer transition-all duration-300 hover:card-shadow-hover press-scale border-0 relative group',
           isLarge ? 'rounded-[1.75rem]' : 'rounded-[1.25rem]'
         )}
         onClick={() => navigate(`/recipe/${recipe.id}`)}
       >
-        <div className={cn(
-          'relative bg-gradient-to-br flex items-center justify-center overflow-hidden',
-          isLarge ? 'h-44' : 'h-28',
-          gradientPair
-        )}>
-          <div className="absolute inset-0 opacity-[0.06]">
-            <svg width="100%" height="100%">
-              <defs>
-                <pattern id={`explore-pat-${recipe.id}`} x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
-                  <circle cx="8" cy="8" r="0.8" fill="currentColor" className="text-charcoal" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill={`url(#explore-pat-${recipe.id})`} />
-            </svg>
+        {outOfSeason && (
+          <div className="absolute top-2.5 left-2.5 z-10 bg-honey/85 backdrop-blur-sm rounded-xl px-2 py-0.5 flex items-center gap-1">
+            <AlertTriangle size={10} className="text-earth-dark" />
+            <span className="text-[9px] font-bold text-earth-dark">过季</span>
           </div>
-          <ChefHat
-            size={isLarge ? 44 : 28}
-            className={cn('opacity-20 transition-transform duration-300 group-hover:scale-110', accent.icon)}
-            strokeWidth={1}
-          />
-          <div className="absolute top-2.5 right-2.5">
+        )}
+
+        {/* Quick actions */}
+        <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); onQuickRecord(recipe) }}
+            className="w-7 h-7 bg-sage/80 backdrop-blur-sm rounded-lg flex items-center justify-center card-shadow"
+            title="记录到饮食日记"
+          >
+            <BookMarked size={12} className="text-white" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/recipe/${recipe.id}/edit`) }}
+            className="w-7 h-7 bg-paper/80 backdrop-blur-sm rounded-lg flex items-center justify-center card-shadow"
+          >
+            <Pencil size={12} className="text-stone" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(recipe) }}
+            className="w-7 h-7 bg-blossom/80 backdrop-blur-sm rounded-lg flex items-center justify-center card-shadow"
+            title="删除食谱"
+          >
+            <Trash2 size={12} className="text-white" />
+          </button>
+        </div>
+
+        <div className={cn('relative overflow-hidden', isLarge ? 'h-44' : 'h-28')}>
+          {recipe.coverImage ? (
+            <>
+              <img
+                src={recipe.coverImage}
+                alt={recipe.name}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-charcoal/20 to-transparent" />
+            </>
+          ) : (
+            <div className={cn(
+              'w-full h-full bg-gradient-to-br flex items-center justify-center relative overflow-hidden',
+              gradientPair
+            )}>
+              <div className="absolute inset-0 opacity-[0.06]">
+                <svg width="100%" height="100%">
+                  <defs>
+                    <pattern id={`explore-pat-${recipe.id}`} x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+                      <circle cx="8" cy="8" r="0.8" fill="currentColor" className="text-charcoal" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill={`url(#explore-pat-${recipe.id})`} />
+                </svg>
+              </div>
+              <ChefHat
+                size={isLarge ? 44 : 28}
+                className={cn('opacity-20 transition-transform duration-300 group-hover:scale-110', accent.icon)}
+                strokeWidth={1}
+              />
+            </div>
+          )}
+          <div className="absolute bottom-2.5 left-2.5">
             <span className={cn('px-2 py-0.5 rounded-lg text-[10px] font-bold', diff.bg, diff.text)}>
               {diff.label}
             </span>
@@ -115,24 +312,57 @@ function RecipeCard({ recipe, index }: { recipe: Recipe; index: number }) {
 }
 
 export default function Explore() {
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null)
   const [selectedXun, setSelectedXun] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
+  const [loading, setLoading] = useState(true)
+  const [quickRecordRecipe, setQuickRecordRecipe] = useState<Recipe | null>(null)
+  const [recordFeedback, setRecordFeedback] = useState('')
+  const [deleteRecipe, setDeleteRecipe] = useState<Recipe | null>(null)
+  const [deleteImpact, setDeleteImpact] = useState({ dietRecordsKept: 0, shoppingItemsToRemove: 0 })
+  const toast = useToast()
 
-  const filteredRecipes = useMemo(() => mockRecipes.filter((recipe: Recipe) => {
+  useEffect(() => {
+    let mounted = true
+    getRecipes().then((recipes) => {
+      if (mounted) {
+        setAllRecipes(recipes)
+        setLoading(false)
+      }
+    })
+    return () => { mounted = false }
+  }, [])
+
+  const filteredRecipes = useMemo(() => allRecipes.filter((recipe: Recipe) => {
     const q = searchQuery.trim().toLowerCase()
     const matchesSearch = !q || recipe.name.toLowerCase().includes(q) || recipe.cuisine.includes(q)
     const matchesCuisine = !selectedCuisine || recipe.cuisine === selectedCuisine
     const matchesXun = !selectedXun || recipe.bestSeason.includes(selectedXun) || recipe.bestSeason.includes('全年')
     return matchesSearch && matchesCuisine && matchesXun
-  }), [searchQuery, selectedCuisine, selectedXun])
+  }), [allRecipes, searchQuery, selectedCuisine, selectedXun])
 
   const clearFilters = useCallback(() => {
     setSelectedCuisine(null)
     setSelectedXun(null)
     setSearchQuery('')
   }, [])
+
+  const handleDeleteClick = useCallback(async (recipe: Recipe) => {
+    const impact = await getDeleteImpact(recipe.id)
+    setDeleteImpact(impact)
+    setDeleteRecipe(recipe)
+  }, [])
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteRecipe) return
+    await deleteRecipeWithCascade(deleteRecipe.id)
+    setAllRecipes((prev) => prev.filter((r) => r.id !== deleteRecipe.id))
+    setDeleteRecipe(null)
+    toast.success(`已删除"${deleteRecipe.name}"`)
+  }, [deleteRecipe, toast])
 
   const activeFilterCount = (selectedCuisine ? 1 : 0) + (selectedXun ? 1 : 0)
 
@@ -144,8 +374,18 @@ export default function Explore() {
       className="px-4 pt-5 safe-top pb-4"
     >
       <motion.div variants={fadeInUp} className="mb-4">
-        <h1 className="font-display text-[1.75rem] text-charcoal leading-tight">食谱库</h1>
-        <p className="text-stone text-xs mt-0.5">探索时令美味，发现烹饪灵感</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-[1.75rem] text-charcoal leading-tight">食谱库</h1>
+            <p className="text-stone text-xs mt-0.5">探索时令美味，发现烹饪灵感</p>
+          </div>
+          <button
+            onClick={() => navigate('/recipe/new')}
+            className="w-10 h-10 bg-sage/12 rounded-[0.875rem] flex items-center justify-center card-shadow press-scale"
+          >
+            <Plus size={18} className="text-sage-dark" />
+          </button>
+        </div>
       </motion.div>
 
       <motion.div variants={fadeInUp} className="relative mb-3">
@@ -273,28 +513,98 @@ export default function Explore() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {filteredRecipes.map((recipe, index) => (
-          <div key={recipe.id} className={cn(index % 3 === 0 && index < filteredRecipes.length - 1 && 'col-span-2')}>
-            <RecipeCard recipe={recipe} index={index} />
+      {loading ? (
+        <div className="text-center py-16">
+          <div className="w-10 h-10 border-2 border-sage/30 border-t-sage rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-stone text-sm">加载中...</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2.5">
+            {filteredRecipes.map((recipe, index) => (
+              <div key={recipe.id} className={cn(index % 3 === 0 && index < filteredRecipes.length - 1 && 'col-span-2')}>
+                <RecipeCard recipe={recipe} index={index} onQuickRecord={setQuickRecordRecipe} onDelete={handleDeleteClick} />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {filteredRecipes.length === 0 && (
-        <motion.div
-          variants={fadeInUp}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
-        >
-          <div className="w-16 h-16 bg-cream-dark/40 rounded-full flex items-center justify-center mx-auto mb-3">
-            <ChefHat size={28} className="text-stone/40" />
-          </div>
-          <p className="text-stone text-sm">没有找到匹配的食谱</p>
-          <p className="text-stone/60 text-xs mt-1">试试调整筛选条件</p>
-        </motion.div>
+          {filteredRecipes.length === 0 && (
+            <motion.div
+              variants={fadeInUp}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16"
+            >
+              <div className="w-16 h-16 bg-cream-dark/40 rounded-full flex items-center justify-center mx-auto mb-3">
+                <ChefHat size={28} className="text-stone/40" />
+              </div>
+              <p className="text-stone text-sm">没有找到匹配的食谱</p>
+              <p className="text-stone/60 text-xs mt-1">试试调整筛选条件</p>
+            </motion.div>
+          )}
+        </>
       )}
+
+      {/* Quick Record Modal */}
+      <AnimatePresence>
+        {quickRecordRecipe && (
+          <QuickRecordModal
+            recipe={quickRecordRecipe}
+            onClose={() => setQuickRecordRecipe(null)}
+            onSaved={() => {
+              toast.success(`已记录: ${quickRecordRecipe.name}`)
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirm Modal */}
+      <AnimatePresence>
+        {deleteRecipe && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setDeleteRecipe(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-paper rounded-3xl p-5 max-w-sm w-full card-shadow"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-12 bg-blossom/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <AlertTriangle size={24} className="text-blossom-dark" />
+              </div>
+              <h3 className="font-display text-lg text-charcoal text-center mb-1">确认删除食谱？</h3>
+              <p className="text-sm text-charcoal font-medium text-center mb-4">{deleteRecipe.name}</p>
+
+              <div className="space-y-2 mb-5 text-xs text-stone bg-cream-dark/25 rounded-2xl p-3">
+                {deleteImpact.dietRecordsKept > 0 && (
+                  <p>该菜谱相关的 {deleteImpact.dietRecordsKept} 条饮食记录将保留文字显示</p>
+                )}
+                {deleteImpact.shoppingItemsToRemove > 0 && (
+                  <p>购物清单中 {deleteImpact.shoppingItemsToRemove} 项未购买食材将自动删除</p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-11 rounded-2xl" onClick={() => setDeleteRecipe(null)}>
+                  取消
+                </Button>
+                <Button
+                  className="flex-1 h-11 rounded-2xl bg-blossom text-white hover:bg-blossom-dark"
+                  onClick={handleConfirmDelete}
+                >
+                  确认删除
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

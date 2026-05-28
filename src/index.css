@@ -31,6 +31,14 @@
     overscroll-behavior-y: none;
   }
 
+  html.dark {
+    --color-cream: #1a1a1a;
+    --color-cream-dark: #2a2a2a;
+    --color-paper: #242424;
+    --color-charcoal: #e8e4df;
+    --color-stone: #9a9590;
+  }
+
   body {
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
@@ -127,5 +135,96 @@
 
   .press-scale:active {
     transform: scale(0.96);
+  }
+}
+
+/* Plyr Video Player Theme */
+@layer base {
+  :root {
+    --plyr-color-main: #7FA87F;
+    --plyr-control-radius: 12px;
+    --plyr-video-control-color: rgba(255, 255, 255, 0.9);
+    --plyr-video-control-color-hover: #fff;
+    --plyr-video-control-background: rgba(45, 45, 45, 0.5);
+    --plyr-video-control-background-hover: #7FA87F;
+    --plyr-menu-background: #FFFBF5;
+    --plyr-menu-color: #2D2D2D;
+    --plyr-tooltip-background: #2D2D2D;
+    --plyr-tooltip-color: #FFFBF5;
+    --plyr-range-fill-background: #7FA87F;
+    --plyr-range-thumb-background: #7FA87F;
+    --plyr-range-thumb-shadow: 0 0 0 4px rgba(127, 168, 127, 0.3);
+    --plyr-audio-control-color: #2D2D2D;
+  }
+
+  .plyr {
+    border-radius: 1.5rem;
+    overflow: hidden;
+    font-family: var(--font-sans);
+  }
+
+  .plyr--video .plyr__controls {
+    padding: 12px 16px;
+  }
+
+  .plyr__control {
+    border-radius: 10px;
+  }
+
+  .plyr__control--overlaid {
+    background: rgba(127, 168, 127, 0.9);
+    padding: 20px;
+    border-radius: 50%;
+  }
+
+  .plyr__control--overlaid:hover {
+    background: #7FA87F;
+  }
+
+  .plyr__menu__container {
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(45, 45, 45, 0.1);
+  }
+
+  .plyr__progress__buffer {
+    border-radius: 4px;
+  }
+
+  .plyr__progress input[type="range"] {
+    border-radius: 4px;
+  }
+
+  .plyr__volume input[type="range"] {
+    border-radius: 4px;
+  }
+
+  /* Speed menu styling */
+  .plyr__menu__container .plyr__control {
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+
+  .plyr__menu__container .plyr__control--forward {
+    font-size: 13px;
+  }
+
+  /* Tooltip */
+  .plyr__tooltip {
+    border-radius: 8px;
+    font-size: 12px;
+    padding: 6px 10px;
+    font-weight: 500;
+  }
+
+  /* Progress bar */
+  .plyr__progress__buffer {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Time display */
+  .plyr__time {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
   }
 }

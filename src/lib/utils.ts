@@ -23,3 +23,55 @@ export function formatDate(date: Date = new Date()): string {
     weekday: 'short',
   })
 }
+
+export function getCurrentXunForRegion(region: string = 'cn'): string {
+  // Currently only supports Chinese lunar calendar system
+  // Future: load region-specific season data
+  return getCurrentXun()
+}
+
+export function checkSeasonIntegrity(regionConfig: {
+  lastVerifiedDate: string
+  lastSystemTime: number
+}): { isValid: boolean; changed: boolean; daysDiff: number } {
+  const now = new Date()
+  const nowTime = now.getTime()
+
+  // First time check
+  if (!regionConfig.lastSystemTime || !regionConfig.lastVerifiedDate) {
+    return { isValid: true, changed: false, daysDiff: 0 }
+  }
+
+  const lastTime = regionConfig.lastSystemTime
+  const daysDiff = Math.abs(nowTime - lastTime) / (1000 * 60 * 60 * 24)
+
+  // If system time jumped more than 7 days, flag it
+  if (daysDiff > 7) {
+    return { isValid: false, changed: true, daysDiff }
+  }
+
+  return { isValid: true, changed: false, daysDiff }
+}
+
+export function getDaysUntil(targetDate: string): number {
+  const now = new Date()
+  const target = new Date(targetDate)
+  const diff = target.getTime() - now.getTime()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
+export function getVideoInfo(recipe: { video?: string | import('@/types').VideoInfo }): import('@/types').VideoInfo | null {
+  if (!recipe.video) return null
+
+  // New format: VideoInfo object
+  if (typeof recipe.video === 'object') {
+    return recipe.video
+  }
+
+  // Old format: plain string URL → treat as local video
+  return {
+    platform: 'local',
+    videoId: recipe.video,
+    originalUrl: recipe.video,
+  }
+}

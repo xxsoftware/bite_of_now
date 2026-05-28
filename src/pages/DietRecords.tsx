@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Sunrise, Sun, Sunset, Moon, Smile, Frown, CalendarDays, TrendingUp } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Sunrise, Sun, Sunset, Moon, Smile, Frown, CalendarDays, TrendingUp, Trash2, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { mockDietRecords } from '@/data/mock'
+import { getDietRecords, deleteDietRecord } from '@/lib/db'
 import type { DietRecord } from '@/types'
 
 const staggerContainer = {
@@ -33,7 +33,7 @@ const fullnessConfig = {
   full: { icon: Smile, label: '好满足', color: 'text-honey-dark' },
 }
 
-function RecordCard({ record, index }: { record: DietRecord; index: number }) {
+function RecordCard({ record, index, onDelete }: { record: DietRecord; index: number; onDelete: (id: string) => void }) {
   const meal = mealConfig[record.mealType]
   const MealIcon = meal.icon
   const full = fullnessConfig[record.fullness]
@@ -71,6 +71,12 @@ function RecordCard({ record, index }: { record: DietRecord; index: number }) {
                 <Badge variant="sky" className="text-[9px]">{record.recipe.flavor}</Badge>
               </div>
             </div>
+            <button
+              onClick={() => onDelete(record.id)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-stone/30 hover:text-blossom-dark hover:bg-blossom/8 transition-all shrink-0"
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -78,26 +84,121 @@ function RecordCard({ record, index }: { record: DietRecord; index: number }) {
   )
 }
 
+function CalendarPicker({
+  year,
+  month,
+  onSelect,
+  onClose,
+  markedDates,
+}: {
+  year: number
+  month: number
+  onSelect: (date: string) => void
+  onClose: () => void
+  markedDates: Set<string>
+}) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDay = new Date(year, month, 1).getDay()
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-paper rounded-3xl p-5 max-w-sm w-full card-shadow"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg text-charcoal">
+            {year}年{month + 1}月
+          </h3>
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {weekDays.map((d) => (
+            <div key={d} className="text-center text-[10px] text-stone font-medium py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: firstDay }, (_, i) => (
+            <div key={`empty-${i}`} />
+          ))}
+          {days.map((day) => {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const hasRecords = markedDates.has(dateStr)
+            const isToday = dateStr === new Date().toISOString().split('T')[0]
+            return (
+              <motion.button
+                key={day}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => { onSelect(dateStr); onClose() }}
+                className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all ${
+                  isToday
+                    ? 'bg-charcoal text-paper'
+                    : hasRecords
+                      ? 'bg-sage/15 text-sage-dark'
+                      : 'text-charcoal hover:bg-cream-dark/40'
+                }`}
+              >
+                {day}
+                {hasRecords && !isToday && <div className="w-1 h-1 rounded-full bg-sage mt-0.5" />}
+              </motion.button>
+            )
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function DietRecords() {
   const [selectedDate, setSelectedDate] = useState(0)
+  const [records, setRecords] = useState<DietRecord[]>([])
+  const [showAddHint, setShowAddHint] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(false)
+
+  useEffect(() => {
+    async function loadRecords() {
+      const data = await getDietRecords()
+      setRecords(data)
+    }
+    loadRecords()
+  }, [])
 
   const groupedRecords = useMemo(() => {
-    return mockDietRecords.reduce((acc, record) => {
+    return records.reduce((acc, record) => {
       if (!acc[record.date]) acc[record.date] = []
       acc[record.date].push(record)
       return acc
     }, {} as Record<string, DietRecord[]>)
-  }, [])
+  }, [records])
 
   const dates = useMemo(() => Object.keys(groupedRecords).sort().reverse(), [groupedRecords])
   const currentDate = dates[selectedDate] || dates[0]
   const currentRecords = groupedRecords[currentDate] || []
+  const markedDates = useMemo(() => new Set(dates), [dates])
 
   const stats = useMemo(() => {
-    const uniqueCuisines = new Set(mockDietRecords.map((r) => r.recipe.cuisine)).size
-    const avgMood = mockDietRecords.filter((r) => r.mood === '满足' || r.mood === '幸福').length
+    const uniqueCuisines = new Set(records.map((r) => r.recipe.cuisine)).size
+    const avgMood = records.filter((r) => r.mood === '满足' || r.mood === '幸福').length
     return { uniqueCuisines, avgMood }
-  }, [])
+  }, [records])
+
+  const handleDelete = async (id: string) => {
+    await deleteDietRecord(id)
+    const updated = await getDietRecords()
+    setRecords(updated)
+  }
 
   return (
     <motion.div
@@ -107,9 +208,38 @@ export default function DietRecords() {
       className="px-4 pt-5 safe-top pb-4"
     >
       <motion.div variants={fadeInUp} className="mb-4">
-        <h1 className="font-display text-[1.75rem] text-charcoal leading-tight">饮食日记</h1>
-        <p className="text-stone text-xs mt-0.5">记录每一餐的美好时光</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-[1.75rem] text-charcoal leading-tight">饮食日记</h1>
+            <p className="text-stone text-xs mt-0.5">记录每一餐的美好时光</p>
+          </div>
+          <button
+            onClick={() => setShowAddHint(true)}
+            className="w-10 h-10 bg-sage/12 rounded-[0.875rem] flex items-center justify-center card-shadow press-scale"
+          >
+            <Plus size={18} className="text-sage-dark" />
+          </button>
+        </div>
       </motion.div>
+
+      {/* Add Hint */}
+      <AnimatePresence>
+        {showAddHint && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4 overflow-hidden"
+          >
+            <div className="bg-sage/8 border border-sage/20 rounded-2xl p-3.5">
+              <p className="text-xs text-charcoal font-medium mb-1">如何添加记录</p>
+              <p className="text-[11px] text-stone leading-relaxed">
+                前往「首页」，点击推荐菜品的「我吃了」按钮，即可自动记录到饮食日记中。
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Date Strip */}
       <motion.div variants={fadeInUp} className="mb-4 -mx-4 px-4">
@@ -135,7 +265,10 @@ export default function DietRecords() {
               </motion.button>
             )
           })}
-          <button className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl bg-paper text-stone card-shadow flex-shrink-0 min-w-[3rem]">
+          <button
+            onClick={() => setShowCalendar(true)}
+            className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl bg-paper text-stone card-shadow flex-shrink-0 min-w-[3rem]"
+          >
             <CalendarDays size={14} />
             <span className="text-[10px]">更多</span>
           </button>
@@ -155,7 +288,7 @@ export default function DietRecords() {
           <div className="bg-paper rounded-2xl p-3 text-center card-shadow">
             <div className="flex items-center justify-center gap-1 mb-1">
               <TrendingUp size={12} className="text-blossom-dark" />
-              <p className="font-display text-xl text-blossom-dark leading-none">{mockDietRecords.length}</p>
+              <p className="font-display text-xl text-blossom-dark leading-none">{records.length}</p>
             </div>
             <p className="text-[10px] text-stone font-medium">总餐数</p>
           </div>
@@ -184,11 +317,27 @@ export default function DietRecords() {
           <div className="space-y-2.5 relative">
             <div className="absolute left-[1.125rem] top-3 bottom-3 w-px bg-gradient-to-b from-sage/15 via-blossom/10 to-transparent" />
             {currentRecords.map((record, idx) => (
-              <RecordCard key={record.id} record={record} index={idx} />
+              <RecordCard key={record.id} record={record} index={idx} onDelete={handleDelete} />
             ))}
           </div>
         </div>
       )}
+
+      {/* Calendar Picker Modal */}
+      <AnimatePresence>
+        {showCalendar && (
+          <CalendarPicker
+            year={new Date().getFullYear()}
+            month={new Date().getMonth()}
+            markedDates={markedDates}
+            onSelect={(dateStr) => {
+              const idx = dates.indexOf(dateStr)
+              if (idx >= 0) setSelectedDate(idx)
+            }}
+            onClose={() => setShowCalendar(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {currentRecords.length === 0 && (
         <motion.div variants={fadeInUp} className="text-center py-12">

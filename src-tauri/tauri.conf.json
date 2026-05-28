@@ -25,7 +25,23 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "default",
+          "description": "Default capabilities",
+          "local": true,
+          "windows": ["main"],
+          "permissions": [
+            "core:default",
+            "shell:allow-open",
+            "sql:default",
+            "sql:allow-execute",
+            "sql:allow-select",
+            "stronghold:default"
+          ]
+        }
+      ]
     }
   },
   "bundle": {

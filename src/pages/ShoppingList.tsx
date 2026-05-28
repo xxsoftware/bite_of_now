@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Check, Trash2, Carrot, Milk, Fish, ShoppingBag, Apple, Package, Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { mockShoppingItems } from '@/data/mock'
+import { getShoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem } from '@/lib/db'
+import { autoCategorize } from '@/lib/smartCategory'
 import type { ShoppingItem } from '@/types'
 
 const staggerContainer = {
@@ -30,33 +31,48 @@ const categoryConfig: Record<string, { icon: typeof Carrot; color: string; bg: s
 }
 
 export default function ShoppingList() {
-  const [items, setItems] = useState(mockShoppingItems)
+  const [items, setItems] = useState<ShoppingItem[]>([])
   const [newItem, setNewItem] = useState('')
   const [newCategory, setNewCategory] = useState('蔬菜')
+  const [autoCatEnabled, setAutoCatEnabled] = useState(true)
 
-  const toggleItem = useCallback((id: string) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, checked: !item.checked } : item
-      )
-    )
-  }, [])
-
-  const deleteItem = useCallback((id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id))
-  }, [])
-
-  const addItem = useCallback(() => {
-    if (!newItem.trim()) return
-    const item: ShoppingItem = {
-      id: Date.now().toString(),
-      name: newItem.trim(),
-      category: newCategory,
-      checked: false,
+  useEffect(() => {
+    async function loadItems() {
+      const data = await getShoppingItems()
+      setItems(data)
     }
-    setItems((prev) => [...prev, item])
+    loadItems()
+  }, [])
+
+  const refreshItems = useCallback(async () => {
+    const data = await getShoppingItems()
+    setItems(data)
+  }, [])
+
+  const toggleItem = useCallback(async (id: string) => {
+    const item = items.find((i) => i.id === id)
+    if (item) {
+      await updateShoppingItem(id, { checked: !item.checked })
+      await refreshItems()
+    }
+  }, [items, refreshItems])
+
+  const deleteItem = useCallback(async (id: string) => {
+    await deleteShoppingItem(id)
+    await refreshItems()
+  }, [refreshItems])
+
+  const addItem = useCallback(async () => {
+    if (!newItem.trim()) return
+    const category = autoCatEnabled ? autoCategorize(newItem.trim()) : newCategory
+    await addShoppingItem({
+      name: newItem.trim(),
+      category,
+      checked: false,
+    })
     setNewItem('')
-  }, [newItem, newCategory])
+    await refreshItems()
+  }, [newItem, newCategory, autoCatEnabled, refreshItems])
 
   const uncheckedItems = items.filter((i) => !i.checked)
   const checkedItems = items.filter((i) => i.checked)
@@ -125,15 +141,17 @@ export default function ShoppingList() {
               className="w-full h-11 pl-4 pr-4 bg-paper rounded-2xl border-2 border-transparent focus:border-sage/40 outline-none text-sm transition-colors card-shadow"
             />
           </div>
-          <select
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            className="h-11 px-2.5 bg-paper rounded-2xl border-2 border-transparent focus:border-sage/40 outline-none text-xs card-shadow text-stone"
-          >
-            {Object.keys(categoryConfig).map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+          {!autoCatEnabled && (
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="h-11 px-2.5 bg-paper rounded-2xl border-2 border-transparent focus:border-sage/40 outline-none text-xs card-shadow text-stone"
+            >
+              {Object.keys(categoryConfig).map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          )}
           <Button
             variant="default"
             size="icon"
@@ -142,6 +160,17 @@ export default function ShoppingList() {
           >
             <Plus size={18} />
           </Button>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            onClick={() => setAutoCatEnabled(!autoCatEnabled)}
+            className={cn(
+              'text-[10px] px-2 py-1 rounded-lg transition-all',
+              autoCatEnabled ? 'bg-sage/15 text-sage-dark' : 'bg-cream-dark/40 text-stone'
+            )}
+          >
+            {autoCatEnabled ? '智能分类开启' : '手动分类'}
+          </button>
         </div>
       </motion.div>
 

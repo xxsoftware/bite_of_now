@@ -22,6 +22,7 @@ export const mockRecipes: Recipe[] = [
       { order: 3, description: '鸡蛋打散，加入香椿末和盐搅匀' },
       { order: 4, description: '热锅凉油，倒入蛋液炒至凝固即可' },
     ],
+    video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     tips: '香椿含有亚硝酸盐，焯水是关键步骤，不可省略',
   },
   {
@@ -46,6 +47,7 @@ export const mockRecipes: Recipe[] = [
       { order: 3, description: '加入蒜末和高汤，放入豆腐中小火炖煮5分钟' },
       { order: 4, description: '勾芡收汁，撒上花椒粉和葱花' },
     ],
+    video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     tips: '选用嫩豆腐口感更佳，勾芡分两次更均匀',
   },
   {
@@ -70,6 +72,7 @@ export const mockRecipes: Recipe[] = [
       { order: 3, description: '倒掉蒸出的汤汁，铺上新鲜葱姜丝' },
       { order: 4, description: '淋上蒸鱼豉油，浇上热油激发香味' },
     ],
+    video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     tips: '蒸鱼时间根据鱼大小调整，蒸好后倒掉汤汁是去腥关键',
   },
   {
@@ -93,6 +96,7 @@ export const mockRecipes: Recipe[] = [
       { order: 3, description: '水开下锅煮至浮起' },
       { order: 4, description: '捞出滚上椰蓉即可' },
     ],
+    video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     tips: '樱桃要选甜度高、果肉紧实的',
   },
   {
@@ -117,6 +121,7 @@ export const mockRecipes: Recipe[] = [
       { order: 3, description: '加入调料和没过肉的热水，大火烧开转小火炖90分钟' },
       { order: 4, description: '翻面继续炖30分钟，最后大火收汁' },
     ],
+    video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
     tips: '选用层次分明的五花肉，小火慢炖是入口即化的关键',
   },
   {
@@ -140,6 +145,7 @@ export const mockRecipes: Recipe[] = [
       { order: 2, description: '加盐腌制10分钟，倒掉水分' },
       { order: 3, description: '加入蒜末、醋、生抽、香油拌匀' },
     ],
+    video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
     tips: '拍黄瓜比切黄瓜更入味，腌制后倒掉水分更脆爽',
   },
 ]
