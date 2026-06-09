@@ -70,14 +70,15 @@ export default function RecipeForm() {
           setIngredients(found.ingredients?.length ? found.ingredients : [{ name: '', amount: '' }])
           setSteps(found.steps?.length ? found.steps : [{ order: 1, description: '' }])
           setTips(found.tips || '')
-          setVideo(found.video || '')
-        if (found.video && typeof found.video === 'object' && found.video.platform) {
-          setVideoInfo(found.video as import('@/types').VideoInfo)
-        } else if (found.video) {
-          // Try to parse old string format
-          const parsed = parseVideoUrl(found.video)
-          setVideoInfo(parsed)
-        }
+          if (found.video) {
+            if (typeof found.video === 'object' && (found.video as import('@/types').VideoInfo).platform) {
+              setVideoInfo(found.video as import('@/types').VideoInfo)
+            } else if (typeof found.video === 'string') {
+              setVideo(found.video)
+              const parsed = parseVideoUrl(found.video)
+              setVideoInfo(parsed)
+            }
+          }
           setCoverImage(found.coverImage || '')
         }
       }

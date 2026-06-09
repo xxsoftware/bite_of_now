@@ -42,7 +42,7 @@ export default function SeasonCheckModal({
   const [region, setRegion] = useState(initialConfig?.region || 'cn')
   const [selectedMonth, setSelectedMonth] = useState(`${currentMonth}月`)
   const [selectedXun, setSelectedXun] = useState(currentPart)
-  const [_step, setStep] = useState<'region' | 'confirm'>('region')
+  const [step] = useState<'region' | 'confirm'>('region')
 
   const manualXun = `${selectedMonth}${selectedXun}`
 

@@ -1,6 +1,7 @@
 import Database from '@tauri-apps/plugin-sql'
 import type { Recipe, DietRecord, ShoppingItem, AIConfig, UserPreferences } from '@/types'
 import { mockRecipes } from '@/data/mock'
+import { getCurrentXun } from '@/lib/utils'
 
 let dbInstance: Database | null = null
 
@@ -686,7 +687,7 @@ export async function importAllData(data: AppData): Promise<{ success: boolean; 
     if (data.dislikedRecipes) {
       for (const name of data.dislikedRecipes) await addDislikedRecipe(name)
     }
-    if (data.regionConfig) await saveRegionConfig(data.regionConfig)
+    if ('regionConfig' in data && data.regionConfig) await saveRegionConfig(data.regionConfig as import('@/types').RegionConfig)
     return { success: true, message: '数据导入成功' }
   } catch (e) {
     return { success: false, message: `导入失败: ${e}` }

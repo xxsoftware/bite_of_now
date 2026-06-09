@@ -5,15 +5,15 @@ import { RefreshCw, Check, ChefHat, Flame, Droplets, Sparkles, Loader2, Undo2, M
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getCurrentXun, formatDate, cn, getCurrentXunForRegion } from '@/lib/utils'
+import { formatDate, cn, getCurrentXunForRegion } from '@/lib/utils'
 import {
   getRecipes, saveDailyRecommendation, getDailyRecommendation,
   addDietRecord, addDislikedRecipe, removeDislikedRecipe,
-  getAIConfig, getRegionConfig, incrementLocalStreak, resetLocalStreak
+  getAIConfig, getRegionConfig, incrementLocalStreak, resetLocalStreak,
+  getTunePreferences, saveTunePreferences
 } from '@/lib/db'
 import { useToast } from '@/components/ToastProvider'
 import { fetchAIRecommendation, generateLocalRecommendation, matchAIRecipe } from '@/lib/ai'
-import { saveTunePreferences } from '@/lib/db'
 import type { Recipe, DailyRecommendation, RegionConfig, TunePreferences } from '@/types'
 
 const staggerContainer = {
@@ -197,7 +197,7 @@ export default function Home() {
   const [reasons, setReasons] = useState<Record<string, string>>({})
   const [isLocalMode, setIsLocalMode] = useState(false)
   const [showTuneModal, setShowTuneModal] = useState(false)
-  const [tuneMealType, setTuneMealType] = useState('')
+  const [_tuneMealType, setTuneMealType] = useState('')
   const toast = useToast()
 
   // Undo state for dislike
