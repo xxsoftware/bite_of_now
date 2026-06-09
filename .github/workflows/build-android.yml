@@ -1,0 +1,137 @@
+name: Build Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Build type"
+        required: true
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
+      sign_release:
+        description: "Sign release APK with keystore"
+        required: true
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: 22
+  RUST_VERSION: stable
+  ANDROID_API: 34
+  BUILD_TOOLS: "34.0.0"
+  NDK_VERSION: "26.1.10909125"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK/NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-${{ env.ANDROID_API }} build-tools;${{ env.BUILD_TOOLS }} ndk;${{ env.NDK_VERSION }}"
+
+      - name: Export Android env
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version '^2.0.0'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build frontend
+        run: pnpm run build
+
+      - name: Init Android project
+        run: cargo tauri android init
+
+      - name: Build Android APK
+        run: |
+          if [ "${{ inputs.build_type }}" = "release" ]; then
+            cargo tauri android build --release
+          else
+            cargo tauri android build --debug
+          fi
+
+      - name: Locate APK
+        id: apk
+        run: |
+          # Try multiple possible locations for APK
+          APK_PATH=$(find src-tauri/gen/android -name "*.apk" -type f 2>/dev/null | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "::error::No APK found. Listing build outputs:"
+            find src-tauri/gen/android -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "No build outputs found"
+            ls -la src-tauri/gen/android/app/build/outputs/ 2>/dev/null || echo "No outputs directory"
+            exit 1
+          fi
+          echo "Found APK: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+
+      - name: Select APK for artifact
+        run: echo "FINAL_APK=${{ steps.apk.outputs.apk_path }}" >> $GITHUB_ENV
+
+      - name: Sign release APK
+        if: ${{ inputs.build_type == 'release' && inputs.sign_release }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "::error::Missing Android signing secrets"
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/keystore.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+
+          BUILD_TOOLS_DIR="$ANDROID_SDK_ROOT/build-tools/${{ env.BUILD_TOOLS }}"
+          ZIPALIGN="$BUILD_TOOLS_DIR/zipalign"
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+
+          if [ ! -x "$ZIPALIGN" ] || [ ! -x "$APKSIGNER" ]; then
+            echo "::error::zipalign/apksigner not found in $BUILD_TOOLS_DIR"
+            exit 1
+          fi
+
+          ALIGNED_APK="$RUNNER_TEMP/app-release-aligned.apk"
+          SIGNED_APK="$RUNNER_TEMP/app-release-signed.apk"
+          "$ZIPALIGN" -v -p 4 "${{ steps.apk.outputs.apk_path }}" "$ALIGNED_APK"
+          "$APKSIGNER" sign --ks "$KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass pass:"$ANDROID_KEYSTORE_PASSWORD" --key-pass pass:"$ANDROID_KEY_PASSWORD" --out "$SIGNED_APK" "$ALIGNED_APK"
+
+          echo "FINAL_APK=$SIGNED_APK" >> $GITHUB_ENV
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bite-of-now-android-${{ inputs.build_type }}-${{ github.run_number }}
+          path: ${{ env.FINAL_APK }}
