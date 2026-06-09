@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, ChefHat, SlidersHorizontal, X, Plus, AlertTriangle, Pencil, BookMarked, Sunrise, Sun, Sunset, Moon, Smile } from 'lucide-react'
+import { Search, Clock, ChefHat, SlidersHorizontal, X, Plus, AlertTriangle, Pencil, BookMarked, Sunrise, Sun, Sunset, Moon, Smile, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn, getCurrentXun } from '@/lib/utils'
@@ -320,7 +320,6 @@ export default function Explore() {
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
   const [quickRecordRecipe, setQuickRecordRecipe] = useState<Recipe | null>(null)
-  const [recordFeedback, setRecordFeedback] = useState('')
   const [deleteRecipe, setDeleteRecipe] = useState<Recipe | null>(null)
   const [deleteImpact, setDeleteImpact] = useState({ dietRecordsKept: 0, shoppingItemsToRemove: 0 })
   const toast = useToast()

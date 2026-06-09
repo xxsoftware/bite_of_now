@@ -24,7 +24,7 @@ export function formatDate(date: Date = new Date()): string {
   })
 }
 
-export function getCurrentXunForRegion(region: string = 'cn'): string {
+export function getCurrentXunForRegion(_region: string = 'cn'): string {
   // Currently only supports Chinese lunar calendar system
   // Future: load region-specific season data
   return getCurrentXun()

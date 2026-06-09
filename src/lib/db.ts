@@ -667,7 +667,6 @@ export async function exportAllData(): Promise<AppData> {
     aiConfig: { ...config, apiKey: '' },  // Skip API key for security
     userPreferences: await getUserPreferences(),
     dislikedRecipes: await getDislikedRecipes(),
-    regionConfig: await getRegionConfig(),
   }
 }
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle, Check, MapPin, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getCurrentXun } from '@/lib/utils'
+import { getCurrentXun, cn } from '@/lib/utils'
 import type { RegionConfig } from '@/types'
 
 const regions = [
@@ -42,7 +42,7 @@ export default function SeasonCheckModal({
   const [region, setRegion] = useState(initialConfig?.region || 'cn')
   const [selectedMonth, setSelectedMonth] = useState(`${currentMonth}月`)
   const [selectedXun, setSelectedXun] = useState(currentPart)
-  const [step, setStep] = useState<'region' | 'confirm'>('region')
+  const [_step, setStep] = useState<'region' | 'confirm'>('region')
 
   const manualXun = `${selectedMonth}${selectedXun}`
 
